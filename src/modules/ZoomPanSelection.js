@@ -125,6 +125,34 @@ export default class ZoomPanSelection extends Toolbar {
 		this.gridRect = null
 	}
 
+	getScale(element) {
+		const style = window.getComputedStyle(element);
+		const transform = style.getPropertyValue("transform");
+
+		if (transform === "none") {
+			return 1; // No scaling applied
+		}
+
+		const matrix = transform.match(/^matrix\((.+)\)$/);
+
+		if (matrix) {
+			const values = matrix[1].split(", ");
+			const scaleX = parseFloat(values[0]);
+			return scaleX;
+		}
+
+		return 1; // Default scale if no transform is found
+	}
+
+	getOutsideScale(element) {
+		let zoom = 1;
+		while (element) {
+			zoom *= this.getScale(element);
+			element = element.parentElement;
+		}
+		return zoom;
+	}
+
 	svgMouseEvents(xyRatios, e) {
 		let w = this.w
 		let me = this
@@ -174,8 +202,19 @@ export default class ZoomPanSelection extends Toolbar {
 					? e.changedTouches[0].clientY
 					: e.clientY
 
+		this.outsideScale = 1 / this.getOutsideScale(e.target);
+		me.clientX = me.clientX * this.outsideScale;
+		me.clientY = me.clientY * this.outsideScale;
+
+		this.correctScale = (rect) => {
+			return {
+				left: rect.left * this.outsideScale + 50,
+				top: rect.top * this.outsideScale,
+			}
+		}
+
 		if (e.type === 'mousedown' && e.which === 1) {
-			let gridRectDim = me.gridRect.getBoundingClientRect()
+			let gridRectDim = this.correctScale(me.gridRect.getBoundingClientRect())
 
 			me.startX = me.clientX - gridRectDim.left
 			me.startY = me.clientY - gridRectDim.top
@@ -215,7 +254,7 @@ export default class ZoomPanSelection extends Toolbar {
 			e.type === 'mouseleave'
 		) {
 			// we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-			let gridRectDim = me.gridRect?.getBoundingClientRect()
+			let gridRectDim = this.correctScale(me.gridRect?.getBoundingClientRect())
 
 			if (gridRectDim && me.w.globals.mousedown) {
 				// user released the drag, now do all the calculations
@@ -478,7 +517,7 @@ export default class ZoomPanSelection extends Toolbar {
 		const w = this.w
 		let me = context
 
-		let gridRectDim = this.gridRect.getBoundingClientRect()
+		let gridRectDim = this.correctScale(this.gridRect.getBoundingClientRect())
 
 		let startX = me.startX - 1
 		let startY = me.startY
