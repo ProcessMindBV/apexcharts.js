@@ -35627,6 +35627,7 @@
         // when called externally, clear some global variables
         // fixes apexcharts.js#1488
         w.globals.selection = undefined;
+        if (options.selectedDataPoints) w.globals.selectedDataPoints = options.selectedDataPoints;
         if (options.series) {
           this.series.resetSeries(false, true, false);
           if (options.series.length && options.series[0].data) {
