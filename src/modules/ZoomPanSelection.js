@@ -213,7 +213,7 @@ export default class ZoomPanSelection extends Toolbar {
 			}
 		}
 
-		if (e.type === 'mousedown' && e.which === 1) {
+		if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
 			let gridRectDim = this.correctScale(me.gridRect.getBoundingClientRect())
 
 			me.startX = me.clientX - gridRectDim.left

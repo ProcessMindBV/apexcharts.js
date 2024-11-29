@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.0.0
+ * ApexCharts v4.1.0
  * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
@@ -9004,7 +9004,8 @@
     }, {
       key: "applyFilter",
       value: function applyFilter(el, i, filterType) {
-        var _this = this;
+        var _this = this,
+          _el$filterer2;
         var w = this.w;
         el.unfilter(true);
         if (filterType === 'none') {
@@ -9025,11 +9026,12 @@
           }
         });
         if (!shadowAttr.noUserSpaceOnUse) {
-          el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse');
+          var _el$filterer, _el$filterer$node;
+          (_el$filterer = el.filterer()) === null || _el$filterer === void 0 ? void 0 : (_el$filterer$node = _el$filterer.node) === null || _el$filterer$node === void 0 ? void 0 : _el$filterer$node.setAttribute('filterUnits', 'userSpaceOnUse');
         }
 
         // this scales the filter to a bigger size so that the dropshadow doesn't crops
-        this._scaleFilterSize(el.filterer().node);
+        this._scaleFilterSize((_el$filterer2 = el.filterer()) === null || _el$filterer2 === void 0 ? void 0 : _el$filterer2.node);
       }
 
       // appends dropShadow to the filter object which can be chained with other filter effects
@@ -9079,7 +9081,8 @@
       key: "dropShadow",
       value: function dropShadow(el, attrs) {
         var _w$config$chart$dropS2,
-          _this2 = this;
+          _this2 = this,
+          _el$filterer3;
         var i = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
         var w = this.w;
         el.unfilter(true);
@@ -9101,7 +9104,7 @@
         }
 
         // this scales the filter to a bigger size so that the dropshadow doesn't crops
-        this._scaleFilterSize(el.filterer().node);
+        this._scaleFilterSize((_el$filterer3 = el.filterer()) === null || _el$filterer3 === void 0 ? void 0 : _el$filterer3.node);
         return el;
       }
     }, {
@@ -9121,6 +9124,7 @@
     }, {
       key: "_scaleFilterSize",
       value: function _scaleFilterSize(el) {
+        if (!el) return;
         var setAttributes = function setAttributes(attrs) {
           for (var key in attrs) {
             if (attrs.hasOwnProperty(key)) {
@@ -15200,6 +15204,7 @@
     }, {
       key: "fillPath",
       value: function fillPath(opts) {
+        var _w$config$series$this, _w$config$series$this2, _w$config$series$this3;
         var w = this.w;
         this.opts = opts;
         var cnf = this.w.config;
@@ -15230,6 +15235,10 @@
         if (opts.color) {
           fillColor = opts.color;
         }
+        if ((_w$config$series$this = w.config.series[this.seriesIndex]) !== null && _w$config$series$this !== void 0 && (_w$config$series$this2 = _w$config$series$this.data) !== null && _w$config$series$this2 !== void 0 && (_w$config$series$this3 = _w$config$series$this2[opts.dataPointIndex]) !== null && _w$config$series$this3 !== void 0 && _w$config$series$this3.fillColor) {
+          var _w$config$series$this4, _w$config$series$this5, _w$config$series$this6;
+          fillColor = (_w$config$series$this4 = w.config.series[this.seriesIndex]) === null || _w$config$series$this4 === void 0 ? void 0 : (_w$config$series$this5 = _w$config$series$this4.data) === null || _w$config$series$this5 === void 0 ? void 0 : (_w$config$series$this6 = _w$config$series$this5[opts.dataPointIndex]) === null || _w$config$series$this6 === void 0 ? void 0 : _w$config$series$this6.fillColor;
+        }
 
         // in case a color is undefined, fallback to white color to prevent runtime error
         if (!fillColor) {
@@ -15238,7 +15247,9 @@
         }
         var defaultColor = fillColor;
         if (fillColor.indexOf('rgb') === -1) {
-          if (fillColor.length < 9) {
+          if (fillColor.indexOf('#') === -1) {
+            defaultColor = fillColor;
+          } else if (fillColor.length < 9) {
             // if the hex contains alpha and is of 9 digit, skip the opacity
             defaultColor = Utils$1.hexToRgba(fillColor, fillOpacity);
           }
@@ -15246,7 +15257,6 @@
           if (fillColor.indexOf('rgba') > -1) {
             fillOpacity = Utils$1.getOpacityFromRGBA(fillColor);
           } else {
-            // if rgb color, apply opacity
             defaultColor = Utils$1.hexToRgba(Utils$1.rgb2hex(fillColor), fillOpacity);
           }
         }
@@ -15534,7 +15544,8 @@
                 opts.pSize = 0;
               }
               if (!invalidMarker) {
-                if (w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers) {
+                var shouldCreateMarkerWrap = w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers;
+                if (shouldCreateMarkerWrap && !elMarkersWrap) {
                   elMarkersWrap = graphics.group({
                     class: alwaysDrawMarker || hasDiscreteMarkers ? '' : 'apexcharts-series-markers'
                   });
@@ -21805,7 +21816,7 @@
             strokeWidth: mBorderWidth,
             size: mSize
           });
-          var SVGMarker = SVG().addTo(elMarker).size('100%', '100%');
+          var SVGMarker = window.SVG().addTo(elMarker).size('100%', '100%');
           var marker = new Graphics(this.ctx).drawMarker(0, 0, _objectSpread2(_objectSpread2({}, markerConfig), {}, {
             pointFillColor: Array.isArray(fillcolor) ? fillcolor[i] : markerConfig.pointFillColor,
             shape: shape
@@ -22652,7 +22663,7 @@
             top: rect.top * _this3.outsideScale
           };
         };
-        if (e.type === 'mousedown' && e.which === 1) {
+        if (e.type === 'mousedown' && e.which === 1 || e.type === 'touchstart') {
           var gridRectDim = this.correctScale(me.gridRect.getBoundingClientRect());
           me.startX = me.clientX - gridRectDim.left;
           me.startY = me.clientY - gridRectDim.top;
@@ -23849,7 +23860,8 @@
         }
         if (typeof yLbTitleFormatter !== 'function') {
           yLbTitleFormatter = function yLbTitleFormatter(label) {
-            return label;
+            // refrence used from line: 966 in Options.js
+            return label ? label + ': ' : '';
           };
         }
         return {
@@ -24744,6 +24756,9 @@
           e: e,
           opt: opt
         });
+        if (barXY.j === null && barXY.barHeight === 0 && barXY.barWidth === 0) {
+          return; // bar was not hovered and didn't receive correct coords
+        }
         i = barXY.i;
         var j = barXY.j;
         w.globals.capturedSeriesIndex = i;
@@ -24764,8 +24779,7 @@
         if (isNaN(y)) {
           y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight;
         }
-        var seriesIndex = parseInt(opt.paths.parentNode.getAttribute('data:realIndex'), 10);
-        w.globals.isMultipleYAxis ? w.config.yaxis[seriesIndex] && w.config.yaxis[seriesIndex].reversed : w.config.yaxis[0].reversed;
+        parseInt(opt.paths.parentNode.getAttribute('data:realIndex'), 10);
         if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
           x = x - ttCtx.tooltipRect.ttWidth;
         } else if (x < 0) {
@@ -25316,7 +25330,7 @@
         var _this2 = this;
         // If a user is moving their mouse quickly, don't bother updating the tooltip every single frame
 
-        var targetDelay = 100;
+        var targetDelay = 20;
         var timeSinceLastUpdate = Date.now() - this.lastHoverTime;
         if (timeSinceLastUpdate >= targetDelay) {
           // The tooltip was last updated over 100ms ago - redraw it even if the user is still moving their
@@ -26443,7 +26457,7 @@
     }, {
       key: "getPathFillColor",
       value: function getPathFillColor(series, i, j, realIndex) {
-        var _w$config$series$i$da, _w$config$series$i$da2, _w$config$series$i$da3, _w$config$series$i$da4, _w$config$series$i$da5;
+        var _w$config$series$i$da, _w$config$series$i$da2, _w$config$series$i$da3, _w$config$series$i$da4;
         var w = this.w;
         var fill = this.barCtx.ctx.fill;
         var fillColor = null;
@@ -26456,16 +26470,13 @@
             }
           });
         }
-        if ((_w$config$series$i$da = w.config.series[i].data[j]) !== null && _w$config$series$i$da !== void 0 && _w$config$series$i$da.fillColor) {
-          fillColor = w.config.series[i].data[j].fillColor;
-        }
         var pathFill = fill.fillPath({
           seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
           dataPointIndex: j,
           color: fillColor,
           value: series[i][j],
-          fillConfig: (_w$config$series$i$da2 = w.config.series[i].data[j]) === null || _w$config$series$i$da2 === void 0 ? void 0 : _w$config$series$i$da2.fill,
-          fillType: (_w$config$series$i$da3 = w.config.series[i].data[j]) !== null && _w$config$series$i$da3 !== void 0 && (_w$config$series$i$da4 = _w$config$series$i$da3.fill) !== null && _w$config$series$i$da4 !== void 0 && _w$config$series$i$da4.type ? (_w$config$series$i$da5 = w.config.series[i].data[j]) === null || _w$config$series$i$da5 === void 0 ? void 0 : _w$config$series$i$da5.fill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
+          fillConfig: (_w$config$series$i$da = w.config.series[i].data[j]) === null || _w$config$series$i$da === void 0 ? void 0 : _w$config$series$i$da.fill,
+          fillType: (_w$config$series$i$da2 = w.config.series[i].data[j]) !== null && _w$config$series$i$da2 !== void 0 && (_w$config$series$i$da3 = _w$config$series$i$da2.fill) !== null && _w$config$series$i$da3 !== void 0 && _w$config$series$i$da3.type ? (_w$config$series$i$da4 = w.config.series[i].data[j]) === null || _w$config$series$i$da4 === void 0 ? void 0 : _w$config$series$i$da4.fill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
         });
         return pathFill;
       }
@@ -27482,7 +27493,7 @@
         if (!w.globals.seriesX[realIndex].length) {
           sxI = w.globals.maxValsInArrayIndex;
         }
-        if (w.globals.seriesX[sxI][j]) {
+        if (Utils$1.isNumber(w.globals.seriesX[sxI][j])) {
           x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
         }
         return {
@@ -32089,9 +32100,6 @@
             });
             var colorProps = _this.helpers.getShadeColor(w.config.chart.type, i, j, _this.negRange);
             var color = colorProps.color;
-            if (typeof w.config.series[i].data[j] !== 'undefined' && w.config.series[i].data[j].fillColor) {
-              color = w.config.series[i].data[j].fillColor;
-            }
             var pathFill = fill.fillPath({
               color: color,
               seriesNumber: i,
@@ -32852,6 +32860,8 @@
           hour = 0;
           date += 1;
           unit = 'day';
+          // Unit changed to day , Value should align unit 
+          firstTickValue = date;
         }
         var checkNextMonth = changeDate(date, currentMonth);
         var month = checkNextMonth.month;
