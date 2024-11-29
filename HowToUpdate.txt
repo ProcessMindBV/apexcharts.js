@@ -1,0 +1,7 @@
+
+git fetch --tags  https://github.com/apexcharts/apexcharts.js
+git merge tags/v4.1.0
+
+pnpm build
+
+
