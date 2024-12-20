@@ -153,10 +153,9 @@ export default class ZoomPanSelection extends Toolbar {
 		return zoom;
 	}
 
-	svgMouseEvents(xyRatios, e) {
-		let w = this.w
-		let me = this
-		const toolbar = this.ctx.toolbar
+  svgMouseEvents(xyRatios, e) {
+    let w = this.w
+    const toolbar = this.ctx.toolbar
 
 		let zoomtype = w.globals.zoomEnabled
 			? w.config.chart.zoom.type
@@ -176,31 +175,30 @@ export default class ZoomPanSelection extends Toolbar {
 
 		if (!e.target) return
 
-		const tc = e.target.classList
-		let pc
-		if (e.target.parentNode && e.target.parentNode !== null) {
-			pc = e.target.parentNode.classList
-		}
-		const falsePositives =
-			tc.contains('apexcharts-selection-rect') ||
-			tc.contains('apexcharts-legend-marker') ||
-			tc.contains('apexcharts-legend-text') ||
-			(pc && pc.contains('apexcharts-toolbar'))
+    const tc = e.target.classList
+    let pc
+    if (e.target.parentNode && e.target.parentNode !== null) {
+      pc = e.target.parentNode.classList
+    }
+    const falsePositives =
+      tc.contains('apexcharts-legend-marker') ||
+      tc.contains('apexcharts-legend-text') ||
+      (pc && pc.contains('apexcharts-toolbar'))
 
 		if (falsePositives) return
 
-		me.clientX =
-			e.type === 'touchmove' || e.type === 'touchstart'
-				? e.touches[0].clientX
-				: e.type === 'touchend'
-					? e.changedTouches[0].clientX
-					: e.clientX
-		me.clientY =
-			e.type === 'touchmove' || e.type === 'touchstart'
-				? e.touches[0].clientY
-				: e.type === 'touchend'
-					? e.changedTouches[0].clientY
-					: e.clientY
+    this.clientX =
+      e.type === 'touchmove' || e.type === 'touchstart'
+        ? e.touches[0].clientX
+        : e.type === 'touchend'
+        ? e.changedTouches[0].clientX
+        : e.clientX
+    this.clientY =
+      e.type === 'touchmove' || e.type === 'touchstart'
+        ? e.touches[0].clientY
+        : e.type === 'touchend'
+        ? e.changedTouches[0].clientY
+        : e.clientY
 
 		this.outsideScale = 1 / this.getOutsideScale(e.target);
 		me.clientX = me.clientX * this.outsideScale;
@@ -214,77 +212,84 @@ export default class ZoomPanSelection extends Toolbar {
 		}
 
 		if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
-			let gridRectDim = this.correctScale(me.gridRect.getBoundingClientRect())
+			let gridRectDim = this.correctScale(this.gridRect.getBoundingClientRect())
 
-			me.startX = me.clientX - gridRectDim.left
-			me.startY = me.clientY - gridRectDim.top
+			this.startX =
+        this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
+			this.startY = this.clientY - gridRectDim.top
 
-			me.dragged = false
-			me.w.globals.mousedown = true
-		}
+      this.dragged = false
+      this.w.globals.mousedown = true
+    }
 
-		if ((e.type === 'mousemove' && e.which === 1) || e.type === 'touchmove') {
-			me.dragged = true
+    if ((e.type === 'mousemove' && e.which === 1) || e.type === 'touchmove') {
+      this.dragged = true
 
-			if (w.globals.panEnabled) {
-				w.globals.selection = null
-				if (me.w.globals.mousedown) {
-					me.panDragging({
-						context: me,
-						zoomtype,
-						xyRatios,
-					})
-				}
-			} else {
-				if (
-					(me.w.globals.mousedown && w.globals.zoomEnabled) ||
-					(me.w.globals.mousedown && w.globals.selectionEnabled)
-				) {
-					me.selection = me.selectionDrawing({
-						context: me,
-						zoomtype,
-					})
-				}
-			}
-		}
+      if (w.globals.panEnabled) {
+        w.globals.selection = null
+        if (this.w.globals.mousedown) {
+          this.panDragging({
+            context: this,
+            zoomtype,
+            xyRatios,
+          })
+        }
+      } else {
+        if (
+          (this.w.globals.mousedown && w.globals.zoomEnabled) ||
+          (this.w.globals.mousedown && w.globals.selectionEnabled)
+        ) {
+          this.selection = this.selectionDrawing({
+            context: this,
+            zoomtype,
+          })
+        }
+      }
+    }
 
-		if (
-			e.type === 'mouseup' ||
-			e.type === 'touchend' ||
-			e.type === 'mouseleave'
-		) {
-			// we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-			let gridRectDim = this.correctScale(me.gridRect?.getBoundingClientRect())
+    if (
+      e.type === 'mouseup' ||
+      e.type === 'touchend' ||
+      e.type === 'mouseleave'
+    ) {
+      this.handleMouseUp({ zoomtype })
+    }
 
-			if (gridRectDim && me.w.globals.mousedown) {
-				// user released the drag, now do all the calculations
-				me.endX = me.clientX - gridRectDim.left
-				me.endY = me.clientY - gridRectDim.top
-				me.dragX = Math.abs(me.endX - me.startX)
-				me.dragY = Math.abs(me.endY - me.startY)
+    this.makeSelectionRectDraggable()
+  }
 
-				if (w.globals.zoomEnabled || w.globals.selectionEnabled) {
-					me.selectionDrawn({
-						context: me,
-						zoomtype,
-					})
-				}
+  handleMouseUp({ zoomtype, isResized }) {
+    const w = this.w
+    // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
+    let gridRectDim = this.gridRect?.getBoundingClientRect()
 
-				if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
-					me.delayedPanScrolled()
-				}
-			}
+    if (gridRectDim && (this.w.globals.mousedown || isResized)) {
+      // user released the drag, now do all the calculations
+      this.endX =
+        this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
+      this.endY = this.clientY - gridRectDim.top
+      this.dragX = Math.abs(this.endX - this.startX)
+      this.dragY = Math.abs(this.endY - this.startY)
 
-			if (w.globals.zoomEnabled) {
-				me.hideSelectionRect(this.selectionRect)
-			}
+      if (w.globals.zoomEnabled || w.globals.selectionEnabled) {
+        this.selectionDrawn({
+          context: this,
+          zoomtype,
+        })
+      }
 
-			me.dragged = false
-			me.w.globals.mousedown = false
-		}
+      if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
+        this.delayedPanScrolled()
+      }
+    }
 
-		this.makeSelectionRectDraggable()
-	}
+    if (w.globals.zoomEnabled) {
+      this.hideSelectionRect(this.selectionRect)
+    }
+
+    this.dragged = false
+    this.w.globals.mousedown = false
+  }
 
 	mouseWheelEvent(e) {
 		const w = this.w
@@ -369,28 +374,38 @@ export default class ZoomPanSelection extends Toolbar {
 
 		if (!this.selectionRect) return
 
-		const rectDim = this.selectionRect.node.getBoundingClientRect()
-		if (rectDim.width > 0 && rectDim.height > 0) {
-			this.selectionRect.select(false).resize(false)
-			this.selectionRect
-				.select({
-					createRot: () => { },
-					updateRot: () => { },
-					createHandle: (group, p, index, pointArr, handleName) => {
-						if (handleName === 'l' || handleName === 'r')
-							return group
-								.circle(8)
-								.css({ 'stroke-width': 1, stroke: '#333', fill: '#fff' })
-						return group.circle(0)
-					},
-					updateHandle: (group, p) => {
-						return group.center(p[0], p[1])
-					},
-				})
-				.resize()
-				.on('resizing', this.selectionDragging.bind(this, 'resizing'))
-		}
-	}
+    const rectDim = this.selectionRect.node.getBoundingClientRect()
+    if (rectDim.width > 0 && rectDim.height > 0) {
+      this.selectionRect.select(false).resize(false)
+      this.selectionRect
+        .select({
+          createRot: () => {},
+          updateRot: () => {},
+          createHandle: (group, p, index, pointArr, handleName) => {
+            if (handleName === 'l' || handleName === 'r')
+              return group
+                .circle(8)
+                .css({ 'stroke-width': 1, stroke: '#333', fill: '#fff' })
+            return group.circle(0)
+          },
+          updateHandle: (group, p) => {
+            return group.center(p[0], p[1])
+          },
+        })
+        .resize()
+        .on('resize', () => {
+          // clearTimeout(this.w.globals.selectionResizeTimer)
+          // this.w.globals.selectionResizeTimer = window.setTimeout(() => {
+          // timer commented for now as performance drop is negligible
+          let zoomtype = w.globals.zoomEnabled
+            ? w.config.chart.zoom.type
+            : w.config.chart.selection.type
+
+          this.handleMouseUp({ zoomtype, isResized: true })
+          //}, 50)
+        })
+    }
+  }
 
 	preselectedSelection() {
 		const w = this.w
@@ -524,33 +539,39 @@ export default class ZoomPanSelection extends Toolbar {
 		let inversedX = false
 		let inversedY = false
 
-		let selectionWidth = me.clientX - gridRectDim.left - startX
-		let selectionHeight = me.clientY - gridRectDim.top - startY
+		const left = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const top = me.clientY - gridRectDim.top;
+
+    let selectionWidth = left - startX;
+		let selectionHeight = top - startY;
 
 		let selectionRect = {
 			translateX: w.globals.translateX,
 			translateY: w.globals.translateY,
 		}
 
-		if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
-			// user dragged the mouse outside drawing area to the right
-			selectionWidth = w.globals.gridWidth - startX
-		} else if (me.clientX - gridRectDim.left < 0) {
-			// user dragged the mouse outside drawing area to the left
-			selectionWidth = startX
-		}
+    if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
+      // user dragged the mouse outside drawing area to the right
+      selectionWidth = w.globals.gridWidth - startX
+	} else if (left < 0) {
+    //} else if (me.clientX - gridRectDim.left < 0) {
+      // user dragged the mouse outside drawing area to the left
+      selectionWidth = startX
+    }
 
-		// inverse selection X
-		if (startX > me.clientX - gridRectDim.left) {
-			inversedX = true
-			selectionWidth = Math.abs(selectionWidth)
-		}
+    // inverse selection X
+	if (startX > left) {
+    //if (startX > me.clientX - gridRectDim.left) {
+      inversedX = true
+      selectionWidth = Math.abs(selectionWidth)
+    }
 
-		// inverse selection Y
-		if (startY > me.clientY - gridRectDim.top) {
-			inversedY = true
-			selectionHeight = Math.abs(selectionHeight)
-		}
+    // inverse selection Y
+	if (startY > top) {
+    //if (startY > me.clientY - gridRectDim.top) {
+      inversedY = true
+      selectionHeight = Math.abs(selectionHeight)
+    }
 
 		if (zoomtype === 'x') {
 			selectionRect = {
@@ -636,6 +657,19 @@ export default class ZoomPanSelection extends Toolbar {
 		}
 		w.globals.selection = draggedProps
 		// update selection ends
+    // update selection when selection rect is dragged
+    const getSelAttr = (attr) => {
+      return parseFloat(selRect.node.getAttribute(attr))
+    }
+    const draggedProps = {
+      x: getSelAttr('x'),
+      y: getSelAttr('y'),
+      width: getSelAttr('width'),
+      height: getSelAttr('height'),
+    }
+
+    w.globals.selection = draggedProps
+    // update selection ends
 
 		if (
 			typeof w.config.chart.events.selection === 'function' &&
@@ -938,12 +972,9 @@ export default class ZoomPanSelection extends Toolbar {
 			max: xHighestValue,
 		}
 
-		let options = {
-			xaxis: {
-				min: xLowestValue,
-				max: xHighestValue,
-			},
-		}
+    let options = {
+      xaxis,
+    }
 
 		if (!w.config.chart.group) {
 			// if chart in a group, prevent yaxis update here

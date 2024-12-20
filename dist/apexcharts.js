@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v4.1.0
+ * ApexCharts v4.3.0
  * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
@@ -371,28 +371,32 @@
     }, {
       key: "clone",
       value: function clone(source) {
-        if (Utils.is('Array', source)) {
-          var cloneResult = [];
-          for (var i = 0; i < source.length; i++) {
-            cloneResult[i] = this.clone(source[i]);
-          }
-          return cloneResult;
-        } else if (Utils.is('Null', source)) {
-          // fixes an issue where null values were converted to {}
-          return null;
-        } else if (Utils.is('Date', source)) {
-          return source;
-        } else if (_typeof(source) === 'object') {
-          var _cloneResult = {};
-          for (var prop in source) {
-            if (source.hasOwnProperty(prop)) {
-              _cloneResult[prop] = this.clone(source[prop]);
-            }
-          }
-          return _cloneResult;
-        } else {
+        var visited = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : new WeakMap();
+        if (source === null || _typeof(source) !== 'object') {
           return source;
         }
+        if (visited.has(source)) {
+          return visited.get(source);
+        }
+        var cloneResult;
+        if (Array.isArray(source)) {
+          cloneResult = [];
+          visited.set(source, cloneResult);
+          for (var i = 0; i < source.length; i++) {
+            cloneResult[i] = this.clone(source[i], visited);
+          }
+        } else if (source instanceof Date) {
+          cloneResult = new Date(source.getTime());
+        } else {
+          cloneResult = {};
+          visited.set(source, cloneResult);
+          for (var prop in source) {
+            if (source.hasOwnProperty(prop)) {
+              cloneResult[prop] = this.clone(source[prop], visited);
+            }
+          }
+        }
+        return cloneResult;
       }
     }, {
       key: "log10",
@@ -428,25 +432,12 @@
       }
     }, {
       key: "noExponents",
-      value: function noExponents(val) {
-        var data = String(val).split(/[eE]/);
-        if (data.length === 1) return data[0];
-        var z = '',
-          sign = val < 0 ? '-' : '',
-          str = data[0].replace('.', ''),
-          mag = Number(data[1]) + 1;
-        if (mag < 0) {
-          z = sign + '0.';
-          while (mag++) {
-            z += '0';
-          }
-          return z + str.replace(/^-/, '');
+      value: function noExponents(num) {
+        // Check if the number contains 'e' (exponential notation)
+        if (num.toString().includes('e')) {
+          return Math.round(num); // Round the number
         }
-        mag -= str.length;
-        while (mag--) {
-          z += '0';
-        }
-        return str + z;
+        return num; // Return as-is if no exponential notation
       }
     }, {
       key: "elementExists",
@@ -2236,7 +2227,7 @@
 
       // ensure source as object
       source =
-        source instanceof Element
+        source instanceof Element$1
           ? source.matrixify()
           : typeof source === 'string'
             ? Matrix.fromArray(source.split(delimiter).map(parseFloat))
@@ -3723,7 +3714,7 @@
   extend(Dom, { attr, find, findOne });
   register(Dom, 'Dom');
 
-  class Element extends Dom {
+  let Element$1 = class Element extends Dom {
     constructor(node, attrs) {
       super(node, attrs);
 
@@ -3876,9 +3867,9 @@
     y(y) {
       return this.attr('y', y)
     }
-  }
+  };
 
-  extend(Element, {
+  extend(Element$1, {
     bbox,
     rbox,
     inside,
@@ -3887,7 +3878,7 @@
     screenCTM
   });
 
-  register(Element, 'Element');
+  register(Element$1, 'Element');
 
   // Define list of available attributes for stroke and fill
   const sugar = {
@@ -3920,7 +3911,7 @@
         typeof o === 'string' ||
         o instanceof Color ||
         Color.isRgb(o) ||
-        o instanceof Element
+        o instanceof Element$1
       ) {
         this.attr(m, o);
       } else {
@@ -4162,7 +4153,7 @@
     transform
   });
 
-  class Container extends Element {
+  class Container extends Element$1 {
     flatten() {
       this.each(function () {
         if (this instanceof Container) {
@@ -4204,7 +4195,7 @@
 
   register(Defs, 'Defs');
 
-  class Shape extends Element {}
+  class Shape extends Element$1 {}
 
   register(Shape, 'Shape');
 
@@ -8030,7 +8021,7 @@
 
   register(ClipPath, 'ClipPath');
 
-  class ForeignObject extends Element {
+  class ForeignObject extends Element$1 {
     constructor(node, attrs = node) {
       super(nodeOrNew('foreignObject', node), attrs);
     }
@@ -8286,7 +8277,7 @@
 
   register(Mask, 'Mask');
 
-  class Stop extends Element {
+  class Stop extends Element$1 {
     constructor(node, attrs = node) {
       super(nodeOrNew('stop', node), attrs);
     }
@@ -8336,7 +8327,7 @@
     return ret
   }
 
-  class Style extends Element {
+  class Style extends Element$1 {
     constructor(node, attrs = node) {
       super(nodeOrNew('style', node), attrs);
     }
@@ -8510,7 +8501,7 @@
 
   extend(EventTarget, getMethodsFor('EventTarget'));
   extend(Dom, getMethodsFor('Dom'));
-  extend(Element, getMethodsFor('Element'));
+  extend(Element$1, getMethodsFor('Element'));
   extend(Shape, getMethodsFor('Shape'));
   extend([Container, Fragment], getMethodsFor('Container'));
   extend(Gradient, getMethodsFor('Gradient'));
@@ -8532,7 +8523,7 @@
 
   makeMorphable();
 
-  class Filter extends Element {
+  class Filter extends Element$1 {
     constructor (node) {
       super(nodeOrNew('filter', node), node);
 
@@ -8577,7 +8568,7 @@
   }
 
   // Create Effect class
-  class Effect extends Element {
+  class Effect extends Element$1 {
     constructor (node, attr) {
       super(node, attr);
       this.result(this.id());
@@ -8850,7 +8841,7 @@
     }
   });
 
-  extend(Element, {
+  extend(Element$1, {
     // Create filter element in defs and store reference
     filterWith: function (block) {
       const filter = block instanceof Filter
@@ -9082,7 +9073,7 @@
       value: function dropShadow(el, attrs) {
         var _w$config$chart$dropS2,
           _this2 = this,
-          _el$filterer3;
+          _el$filterer4;
         var i = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
         var w = this.w;
         el.unfilter(true);
@@ -9100,11 +9091,12 @@
           _this2.addShadow(add, i, attrs, 'SourceGraphic');
         });
         if (!attrs.noUserSpaceOnUse) {
-          el.filterer().node.setAttribute('filterUnits', 'userSpaceOnUse');
+          var _el$filterer3, _el$filterer3$node;
+          (_el$filterer3 = el.filterer()) === null || _el$filterer3 === void 0 ? void 0 : (_el$filterer3$node = _el$filterer3.node) === null || _el$filterer3$node === void 0 ? void 0 : _el$filterer3$node.setAttribute('filterUnits', 'userSpaceOnUse');
         }
 
         // this scales the filter to a bigger size so that the dropshadow doesn't crops
-        this._scaleFilterSize((_el$filterer3 = el.filterer()) === null || _el$filterer3 === void 0 ? void 0 : _el$filterer3.node);
+        this._scaleFilterSize((_el$filterer4 = el.filterer()) === null || _el$filterer4 === void 0 ? void 0 : _el$filterer4.node);
         return el;
       }
     }, {
@@ -10596,6 +10588,17 @@
           }
         });
         return w.globals.invalidLogScale ? series : w.globals.seriesLog;
+      }
+    }, {
+      key: "getLogValAtSeriesIndex",
+      value: function getLogValAtSeriesIndex(val, seriesIndex) {
+        if (val === null) return null;
+        var w = this.w;
+        var yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex];
+        if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
+          return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, val, seriesIndex);
+        }
+        return val;
       }
     }, {
       key: "getBaseLog",
@@ -12741,6 +12744,8 @@
             offsetX: -20,
             offsetY: 4,
             customLegendItems: [],
+            clusterGroupedSeries: true,
+            clusterGroupedSeriesOrientation: 'vertical',
             labels: {
               colors: undefined,
               useSeriesColors: false
@@ -17707,7 +17712,7 @@
         // when all series are collapsed, fixes #3381
         if (dataPoints === 0 && labelsLen > dataPoints) dataPoints = labelsLen;
         if (isXNumeric) {
-          var len = dataPoints > 1 ? dataPoints - 1 : dataPoints;
+          var len = Math.max(Number(w.config.xaxis.tickAmount) || 1, dataPoints > 1 ? dataPoints - 1 : dataPoints);
           colWidth = w.globals.gridWidth / Math.min(len, labelsLen - 1);
           xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX;
         } else {
@@ -18997,7 +19002,7 @@
           // no data in the chart. Either all series collapsed or user passed a blank array
           gl.xAxisScale = this.linearScale(0, 10, 10);
         } else {
-          var ticks = gl.xTickAmount + 1;
+          var ticks = gl.xTickAmount;
           if (diff < 10 && diff > 1) {
             ticks = diff;
           }
@@ -19285,17 +19290,13 @@
                 maxY = Math.max(maxY, gl.series[i][j]);
                 lowestY = Math.min(lowestY, gl.series[i][j]);
               }
-              highestY = maxY;
               if (gl.seriesGoals[i] && gl.seriesGoals[i][j] && Array.isArray(gl.seriesGoals[i][j])) {
                 gl.seriesGoals[i][j].forEach(function (g) {
-                  if (minY !== Number.MIN_VALUE) {
-                    minY = Math.min(minY, g.value);
-                    lowestY = minY;
-                  }
                   maxY = Math.max(maxY, g.value);
-                  highestY = maxY;
+                  lowestY = Math.min(lowestY, g.value);
                 });
               }
+              highestY = maxY;
               if (Utils$1.isFloat(val)) {
                 val = Utils$1.noExponents(val);
                 gl.yValueDecimal = Math.max(gl.yValueDecimal, val.toString().split('.')[1].length);
@@ -19633,28 +19634,30 @@
         if (gl.isXNumeric) {
           // get the least x diff if numeric x axis is present
           gl.seriesX.forEach(function (sX, i) {
-            if (sX.length === 1) {
-              // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
-              // fix #811
-              sX.push(gl.seriesX[gl.maxValsInArrayIndex][gl.seriesX[gl.maxValsInArrayIndex].length - 1]);
-            }
-
-            // fix #983 (clone the array to avoid side effects)
-            var seriesX = sX.slice();
-            seriesX.sort(function (a, b) {
-              return a - b;
-            });
-            seriesX.forEach(function (s, j) {
-              if (j > 0) {
-                var xDiff = s - seriesX[j - 1];
-                if (xDiff > 0) {
-                  gl.minXDiff = Math.min(xDiff, gl.minXDiff);
-                }
+            if (sX.length) {
+              if (sX.length === 1) {
+                // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
+                // fix #811
+                sX.push(gl.seriesX[gl.maxValsInArrayIndex][gl.seriesX[gl.maxValsInArrayIndex].length - 1]);
               }
-            });
-            if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
-              // fixes apexcharts.js #1221
-              gl.minXDiff = 0.5;
+
+              // fix #983 (clone the array to avoid side effects)
+              var seriesX = sX.slice();
+              seriesX.sort(function (a, b) {
+                return a - b;
+              });
+              seriesX.forEach(function (s, j) {
+                if (j > 0) {
+                  var xDiff = s - seriesX[j - 1];
+                  if (xDiff > 0) {
+                    gl.minXDiff = Math.min(xDiff, gl.minXDiff);
+                  }
+                }
+              });
+              if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
+                // fixes apexcharts.js #1221
+                gl.minXDiff = 0.5;
+              }
             }
           });
         }
@@ -21557,7 +21560,7 @@
         if (nonce) {
           stylesheet.setAttribute('nonce', nonce);
         }
-        var text = "\n      .apexcharts-flip-y {\n        transform: scaleY(-1) translateY(-100%);\n        transform-origin: top;\n        transform-box: fill-box;\n      }\n      .apexcharts-flip-x {\n        transform: scaleX(-1);\n        transform-origin: center;\n        transform-box: fill-box;\n      }\n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        justify-content: flex-start;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n        justify-content: center;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n        justify-content: flex-end;\n      }\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n        display: flex;\n        align-items: center;\n      }\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n      .apexcharts-legend-marker {\n        position: relative;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        cursor: pointer;\n        margin-right: 1px;\n      }\n\n      .apexcharts-legend-series.apexcharts-no-click {\n        cursor: auto;\n      }\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n      .apexcharts-inactive-legend {\n        opacity: 0.45;\n      }\n\n    ";
+        var text = "\n      .apexcharts-flip-y {\n        transform: scaleY(-1) translateY(-100%);\n        transform-origin: top;\n        transform-box: fill-box;\n      }\n      .apexcharts-flip-x {\n        transform: scaleX(-1);\n        transform-origin: center;\n        transform-box: fill-box;\n      }\n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n      .apexcharts-legend.apexcharts-legend-group-horizontal {\n        flex-direction: column;\n      }\n      .apexcharts-legend-group {\n        display: flex;\n      }\n      .apexcharts-legend-group-vertical {\n        flex-direction: column-reverse;\n      }\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        justify-content: flex-start;\n        align-items: flex-start;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n        justify-content: center;\n        align-items: center;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n        justify-content: flex-end;\n        align-items: flex-end;\n      }\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n        display: flex;\n        align-items: center;\n      }\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n      .apexcharts-legend-marker {\n        position: relative;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        cursor: pointer;\n        margin-right: 1px;\n      }\n\n      .apexcharts-legend-series.apexcharts-no-click {\n        cursor: auto;\n      }\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n      .apexcharts-inactive-legend {\n        opacity: 0.45;\n      }\n\n    ";
         var rules = document.createTextNode(text);
         stylesheet.appendChild(rules);
         return stylesheet;
@@ -21836,6 +21839,7 @@
     }, {
       key: "drawLegends",
       value: function drawLegends() {
+        var _this = this;
         var me = this;
         var w = this.w;
         var fontFamily = w.config.legend.fontFamily;
@@ -21857,7 +21861,19 @@
         }
         var legendFormatter = w.globals.legendFormatter;
         var isLegendInversed = w.config.legend.inverseOrder;
-        for (var i = isLegendInversed ? legendNames.length - 1 : 0; isLegendInversed ? i >= 0 : i <= legendNames.length - 1; isLegendInversed ? i-- : i++) {
+        var legendGroups = [];
+        if (w.globals.seriesGroups.length > 1 && w.config.legend.clusterGroupedSeries) {
+          w.globals.seriesGroups.forEach(function (_, gi) {
+            legendGroups[gi] = document.createElement('div');
+            legendGroups[gi].classList.add('apexcharts-legend-group', "apexcharts-legend-group-".concat(gi));
+            if (w.config.legend.clusterGroupedSeriesOrientation === 'horizontal') {
+              w.globals.dom.elLegendWrap.classList.add('apexcharts-legend-group-horizontal');
+            } else {
+              legendGroups[gi].classList.add('apexcharts-legend-group-vertical');
+            }
+          });
+        }
+        var _loop = function _loop(i) {
           var _w$config$legend$labe;
           var text = legendFormatter(legendNames[i], {
             seriesIndex: i,
@@ -21879,7 +21895,7 @@
               }
             }
           }
-          var elMarker = this.createLegendMarker({
+          var elMarker = _this.createLegendMarker({
             i: i,
             fillcolor: fillcolor
           });
@@ -21910,7 +21926,7 @@
           });
           elLegend.appendChild(elMarker);
           elLegend.appendChild(elLegendText);
-          var coreUtils = new CoreUtils(this.ctx);
+          var coreUtils = new CoreUtils(_this.ctx);
           if (!w.config.legend.showForZeroSeries) {
             var total = coreUtils.getSeriesTotalByIndex(i);
             if (total === 0 && coreUtils.seriesHaveSameValues(i) && !coreUtils.isSeriesNull(i) && w.globals.collapsedSeriesIndices.indexOf(i) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(i) === -1) {
@@ -21922,7 +21938,17 @@
               elLegend.classList.add('apexcharts-hidden-null-series');
             }
           }
-          w.globals.dom.elLegendWrap.appendChild(elLegend);
+          if (legendGroups.length) {
+            w.globals.seriesGroups.forEach(function (group, gi) {
+              var _w$config$series$i;
+              if (group.includes((_w$config$series$i = w.config.series[i]) === null || _w$config$series$i === void 0 ? void 0 : _w$config$series$i.name)) {
+                w.globals.dom.elLegendWrap.appendChild(legendGroups[gi]);
+                legendGroups[gi].appendChild(elLegend);
+              }
+            });
+          } else {
+            w.globals.dom.elLegendWrap.appendChild(elLegend);
+          }
           w.globals.dom.elLegendWrap.classList.add("apexcharts-align-".concat(w.config.legend.horizontalAlign));
           w.globals.dom.elLegendWrap.classList.add('apx-legend-position-' + w.config.legend.position);
           elLegend.classList.add('apexcharts-legend-series');
@@ -21940,6 +21966,9 @@
           if (!w.config.legend.onItemClick.toggleDataSeries) {
             elLegend.classList.add('apexcharts-no-click');
           }
+        };
+        for (var i = isLegendInversed ? legendNames.length - 1 : 0; isLegendInversed ? i >= 0 : i <= legendNames.length - 1; isLegendInversed ? i-- : i++) {
+          _loop(i);
         }
         w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true);
         if (w.config.legend.onItemHover.highlightDataSeries && w.config.legend.customLegendItems.length === 0) {
@@ -22631,7 +22660,6 @@
       value: function svgMouseEvents(xyRatios, e) {
         var _this3 = this;
         var w = this.w;
-        var me = this;
         var toolbar = this.ctx.toolbar;
         var zoomtype = w.globals.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
         var autoSelected = w.config.chart.toolbar.autoSelected;
@@ -22650,73 +22678,74 @@
         if (e.target.parentNode && e.target.parentNode !== null) {
           pc = e.target.parentNode.classList;
         }
-        var falsePositives = tc.contains('apexcharts-selection-rect') || tc.contains('apexcharts-legend-marker') || tc.contains('apexcharts-legend-text') || pc && pc.contains('apexcharts-toolbar');
+        var falsePositives = tc.contains('apexcharts-legend-marker') || tc.contains('apexcharts-legend-text') || pc && pc.contains('apexcharts-toolbar');
         if (falsePositives) return;
-        me.clientX = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientX : e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
-        me.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
-        this.outsideScale = 1 / this.getOutsideScale(e.target);
-        me.clientX = me.clientX * this.outsideScale;
-        me.clientY = me.clientY * this.outsideScale;
-        this.correctScale = function (rect) {
-          return {
-            left: rect.left * _this3.outsideScale + 50,
-            top: rect.top * _this3.outsideScale
-          };
-        };
+        this.clientX = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientX : e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
+        this.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
         if (e.type === 'mousedown' && e.which === 1 || e.type === 'touchstart') {
-          var gridRectDim = this.correctScale(me.gridRect.getBoundingClientRect());
-          me.startX = me.clientX - gridRectDim.left;
-          me.startY = me.clientY - gridRectDim.top;
-          me.dragged = false;
-          me.w.globals.mousedown = true;
+          var gridRectDim = this.gridRect.getBoundingClientRect();
+          this.startX = this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+          this.startY = this.clientY - gridRectDim.top;
+          this.dragged = false;
+          this.w.globals.mousedown = true;
         }
         if (e.type === 'mousemove' && e.which === 1 || e.type === 'touchmove') {
-          me.dragged = true;
+          this.dragged = true;
           if (w.globals.panEnabled) {
             w.globals.selection = null;
-            if (me.w.globals.mousedown) {
-              me.panDragging({
-                context: me,
+            if (this.w.globals.mousedown) {
+              this.panDragging({
+                context: this,
                 zoomtype: zoomtype,
                 xyRatios: xyRatios
               });
             }
           } else {
-            if (me.w.globals.mousedown && w.globals.zoomEnabled || me.w.globals.mousedown && w.globals.selectionEnabled) {
-              me.selection = me.selectionDrawing({
-                context: me,
+            if (this.w.globals.mousedown && w.globals.zoomEnabled || this.w.globals.mousedown && w.globals.selectionEnabled) {
+              this.selection = this.selectionDrawing({
+                context: this,
                 zoomtype: zoomtype
               });
             }
           }
         }
         if (e.type === 'mouseup' || e.type === 'touchend' || e.type === 'mouseleave') {
-          var _me$gridRect;
-          // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-          var _gridRectDim = this.correctScale((_me$gridRect = me.gridRect) === null || _me$gridRect === void 0 ? void 0 : _me$gridRect.getBoundingClientRect());
-          if (_gridRectDim && me.w.globals.mousedown) {
-            // user released the drag, now do all the calculations
-            me.endX = me.clientX - _gridRectDim.left;
-            me.endY = me.clientY - _gridRectDim.top;
-            me.dragX = Math.abs(me.endX - me.startX);
-            me.dragY = Math.abs(me.endY - me.startY);
-            if (w.globals.zoomEnabled || w.globals.selectionEnabled) {
-              me.selectionDrawn({
-                context: me,
-                zoomtype: zoomtype
-              });
-            }
-            if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
-              me.delayedPanScrolled();
-            }
-          }
-          if (w.globals.zoomEnabled) {
-            me.hideSelectionRect(this.selectionRect);
-          }
-          me.dragged = false;
-          me.w.globals.mousedown = false;
+          this.handleMouseUp({
+            zoomtype: zoomtype
+          });
         }
         this.makeSelectionRectDraggable();
+      }
+    }, {
+      key: "handleMouseUp",
+      value: function handleMouseUp(_ref2) {
+        var _this$gridRect;
+        var zoomtype = _ref2.zoomtype,
+          isResized = _ref2.isResized;
+        var w = this.w;
+        // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
+        var gridRectDim = (_this$gridRect = this.gridRect) === null || _this$gridRect === void 0 ? void 0 : _this$gridRect.getBoundingClientRect();
+        if (gridRectDim && (this.w.globals.mousedown || isResized)) {
+          // user released the drag, now do all the calculations
+          this.endX = this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+          this.endY = this.clientY - gridRectDim.top;
+          this.dragX = Math.abs(this.endX - this.startX);
+          this.dragY = Math.abs(this.endY - this.startY);
+          if (w.globals.zoomEnabled || w.globals.selectionEnabled) {
+            this.selectionDrawn({
+              context: this,
+              zoomtype: zoomtype
+            });
+          }
+          if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
+            this.delayedPanScrolled();
+          }
+        }
+        if (w.globals.zoomEnabled) {
+          this.hideSelectionRect(this.selectionRect);
+        }
+        this.dragged = false;
+        this.w.globals.mousedown = false;
       }
     }, {
       key: "mouseWheelEvent",
@@ -22742,13 +22771,13 @@
     }, {
       key: "executeMouseWheelZoom",
       value: function executeMouseWheelZoom(e) {
-        var _this$gridRect;
+        var _this$gridRect2;
         var w = this.w;
         this.minX = w.globals.isRangeBar ? w.globals.minY : w.globals.minX;
         this.maxX = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX;
 
         // Calculate the relative position of the mouse on the chart
-        var gridRectDim = (_this$gridRect = this.gridRect) === null || _this$gridRect === void 0 ? void 0 : _this$gridRect.getBoundingClientRect();
+        var gridRectDim = (_this$gridRect2 = this.gridRect) === null || _this$gridRect2 === void 0 ? void 0 : _this$gridRect2.getBoundingClientRect();
         if (!gridRectDim) return;
         var mouseX = (e.clientX - gridRectDim.left) / gridRectDim.width;
         var currentMinX = this.minX;
@@ -22796,7 +22825,8 @@
     }, {
       key: "makeSelectionRectDraggable",
       value: function makeSelectionRectDraggable() {
-        this.w;
+        var _this4 = this;
+        var w = this.w;
         if (!this.selectionRect) return;
         var rectDim = this.selectionRect.node.getBoundingClientRect();
         if (rectDim.width > 0 && rectDim.height > 0) {
@@ -22815,7 +22845,17 @@
             updateHandle: function updateHandle(group, p) {
               return group.center(p[0], p[1]);
             }
-          }).resize().on('resizing', this.selectionDragging.bind(this, 'resizing'));
+          }).resize().on('resize', function () {
+            // clearTimeout(this.w.globals.selectionResizeTimer)
+            // this.w.globals.selectionResizeTimer = window.setTimeout(() => {
+            // timer commented for now as performance drop is negligible
+            var zoomtype = w.globals.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
+            _this4.handleMouseUp({
+              zoomtype: zoomtype,
+              isResized: true
+            });
+            //}, 50)
+          });
         }
       }
     }, {
@@ -22866,15 +22906,15 @@
       }
     }, {
       key: "drawSelectionRect",
-      value: function drawSelectionRect(_ref2) {
-        var x = _ref2.x,
-          y = _ref2.y,
-          width = _ref2.width,
-          height = _ref2.height,
-          _ref2$translateX = _ref2.translateX,
-          translateX = _ref2$translateX === void 0 ? 0 : _ref2$translateX,
-          _ref2$translateY = _ref2.translateY,
-          translateY = _ref2$translateY === void 0 ? 0 : _ref2$translateY;
+      value: function drawSelectionRect(_ref3) {
+        var x = _ref3.x,
+          y = _ref3.y,
+          width = _ref3.width,
+          height = _ref3.height,
+          _ref3$translateX = _ref3.translateX,
+          translateX = _ref3$translateX === void 0 ? 0 : _ref3$translateX,
+          _ref3$translateY = _ref3.translateY,
+          translateY = _ref3$translateY === void 0 ? 0 : _ref3$translateY;
         var w = this.w;
         var zoomRect = this.zoomRect;
         var selectionRect = this.selectionRect;
@@ -22933,9 +22973,9 @@
       }
     }, {
       key: "selectionDrawing",
-      value: function selectionDrawing(_ref3) {
-        var context = _ref3.context,
-          zoomtype = _ref3.zoomtype;
+      value: function selectionDrawing(_ref4) {
+        var context = _ref4.context,
+          zoomtype = _ref4.zoomtype;
         var w = this.w;
         var me = context;
         var gridRectDim = this.correctScale(this.gridRect.getBoundingClientRect());
@@ -22943,8 +22983,10 @@
         var startY = me.startY;
         var inversedX = false;
         var inversedY = false;
-        var selectionWidth = me.clientX - gridRectDim.left - startX;
-        var selectionHeight = me.clientY - gridRectDim.top - startY;
+        var left = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+        var top = me.clientY - gridRectDim.top;
+        var selectionWidth = left - startX;
+        var selectionHeight = top - startY;
         var selectionRect = {
           translateX: w.globals.translateX,
           translateY: w.globals.translateY
@@ -22952,19 +22994,19 @@
         if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
           // user dragged the mouse outside drawing area to the right
           selectionWidth = w.globals.gridWidth - startX;
-        } else if (me.clientX - gridRectDim.left < 0) {
+        } else if (left < 0) {
           // user dragged the mouse outside drawing area to the left
           selectionWidth = startX;
         }
 
         // inverse selection X
-        if (startX > me.clientX - gridRectDim.left) {
+        if (startX > left) {
           inversedX = true;
           selectionWidth = Math.abs(selectionWidth);
         }
 
         // inverse selection Y
-        if (startY > me.clientY - gridRectDim.top) {
+        if (startY > top) {
           inversedY = true;
           selectionHeight = Math.abs(selectionHeight);
         }
@@ -23082,9 +23124,9 @@
       }
     }, {
       key: "selectionDrawn",
-      value: function selectionDrawn(_ref4) {
-        var context = _ref4.context,
-          zoomtype = _ref4.zoomtype;
+      value: function selectionDrawn(_ref5) {
+        var context = _ref5.context,
+          zoomtype = _ref5.zoomtype;
         var w = this.w;
         var me = context;
         var xyRatios = this.xyRatios;
@@ -23192,8 +23234,8 @@
       }
     }, {
       key: "panDragging",
-      value: function panDragging(_ref5) {
-        var context = _ref5.context;
+      value: function panDragging(_ref6) {
+        var context = _ref6.context;
         var w = this.w;
         var me = context;
 
@@ -23278,11 +23320,12 @@
             xHighestValue = maxX;
           }
         }
+        var xaxis = {
+          min: xLowestValue,
+          max: xHighestValue
+        };
         var options = {
-          xaxis: {
-            min: xLowestValue,
-            max: xHighestValue
-          }
+          xaxis: xaxis
         };
         if (!w.config.chart.group) {
           // if chart in a group, prevent yaxis update here
@@ -23392,11 +23435,11 @@
           closest = this.closestInMultiArray(transformedHoverX, transformedHoverY, seriesXValArr, seriesYValArr);
           capturedSeries = closest.index;
           j = closest.j;
-          if (capturedSeries !== null) {
+          if (capturedSeries !== null && w.globals.hasNullValues) {
             // initial push, it should be a little smaller than the 1st val
             seriesXValArr = w.globals.seriesXvalues[capturedSeries];
             closest = this.closestInArray(transformedHoverX, seriesXValArr);
-            j = closest.index;
+            j = closest.j;
           }
         }
         w.globals.capturedSeriesIndex = capturedSeries === null ? -1 : capturedSeries;
@@ -23411,49 +23454,6 @@
           j: w.globals.isBarHorizontal ? jHorz : j,
           hoverX: hoverX,
           hoverY: hoverY
-        };
-      }
-    }, {
-      key: "closestInMultiArray",
-      value: function closestInMultiArray(hoverX, hoverY, Xarrays, Yarrays) {
-        var w = this.w;
-        var activeIndex = 0;
-        var currIndex = null;
-        var j = -1;
-        if (w.globals.series.length > 1) {
-          activeIndex = this.getFirstActiveXArray(Xarrays);
-        } else {
-          currIndex = 0;
-        }
-        var currX = Xarrays[activeIndex][0];
-        var diffX = Math.abs(hoverX - currX);
-
-        // find nearest point on x-axis
-        Xarrays.forEach(function (arrX) {
-          arrX.forEach(function (x, iX) {
-            var newDiff = Math.abs(hoverX - x);
-            if (newDiff <= diffX) {
-              diffX = newDiff;
-              j = iX;
-            }
-          });
-        });
-        if (j !== -1) {
-          // find nearest graph on y-axis relevanted to nearest point on x-axis
-          var currY = Yarrays[activeIndex][j];
-          var diffY = Math.abs(hoverY - currY);
-          currIndex = activeIndex;
-          Yarrays.forEach(function (arrY, iAY) {
-            var newDiff = Math.abs(hoverY - arrY[j]);
-            if (newDiff <= diffY) {
-              diffY = newDiff;
-              currIndex = iAY;
-            }
-          });
-        }
-        return {
-          index: currIndex,
-          j: j
         };
       }
     }, {
@@ -23473,6 +23473,47 @@
         return activeIndex;
       }
     }, {
+      key: "closestInMultiArray",
+      value: function closestInMultiArray(hoverX, hoverY, Xarrays, Yarrays) {
+        var w = this.w;
+
+        // Determine which series are active (not collapsed)
+        var isActiveSeries = function isActiveSeries(seriesIndex) {
+          return w.globals.collapsedSeriesIndices.indexOf(seriesIndex) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(seriesIndex) === -1;
+        };
+        var closestDist = Infinity;
+        var closestSeriesIndex = null;
+        var closestPointIndex = null;
+
+        // Iterate through all series and points to find the closest (x,y) to (hoverX, hoverY)
+        for (var i = 0; i < Xarrays.length; i++) {
+          if (!isActiveSeries(i)) {
+            continue;
+          }
+          var xArr = Xarrays[i];
+          var yArr = Yarrays[i];
+
+          // Ensure both xArr and yArr have equal lengths and valid data
+          var len = Math.min(xArr.length, yArr.length);
+          for (var j = 0; j < len; j++) {
+            var xVal = xArr[j];
+            var yVal = yArr[j];
+            var distX = hoverX - xVal;
+            var distY = hoverY - yVal;
+            var dist = Math.sqrt(distX * distX + distY * distY);
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestSeriesIndex = i;
+              closestPointIndex = j;
+            }
+          }
+        }
+        return {
+          index: closestSeriesIndex,
+          j: closestPointIndex
+        };
+      }
+    }, {
       key: "closestInArray",
       value: function closestInArray(val, arr) {
         var curr = arr[0];
@@ -23486,7 +23527,7 @@
           }
         }
         return {
-          index: currIndex
+          j: currIndex
         };
       }
 
@@ -23556,10 +23597,18 @@
     }, {
       key: "getAllMarkers",
       value: function getAllMarkers() {
+        var _this = this;
+        var filterCollapsed = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
         // first get all marker parents. This parent class contains series-index
         // which helps to sort the markers as they are dynamic
         var markersWraps = this.w.globals.dom.baseEl.querySelectorAll('.apexcharts-series-markers-wrap');
         markersWraps = _toConsumableArray(markersWraps);
+        if (filterCollapsed) {
+          markersWraps = markersWraps.filter(function (m) {
+            var realIndex = Number(m.getAttribute('data:realIndex'));
+            return _this.w.globals.collapsedSeriesIndices.indexOf(realIndex) === -1;
+          });
+        }
         markersWraps.sort(function (a, b) {
           var indexA = Number(a.getAttribute('data:realIndex'));
           var indexB = Number(b.getAttribute('data:realIndex'));
@@ -24098,9 +24147,7 @@
         if (Array.isArray(fn) && fn[i]) {
           fn = fn[i];
         }
-
-        // override everything with a custom html tooltip and replace it
-        tooltipEl.innerHTML = fn({
+        var customTooltip = fn({
           ctx: this.ctx,
           series: w.globals.series,
           seriesIndex: i,
@@ -24109,6 +24156,12 @@
           y2: y2,
           w: w
         });
+        if (typeof customTooltip === 'string') {
+          tooltipEl.innerHTML = customTooltip;
+        } else if (customTooltip instanceof Element || typeof customTooltip.nodeName === 'string') {
+          tooltipEl.innerHTML = '';
+          tooltipEl.appendChild(customTooltip);
+        }
       }
     }]);
     return Labels;
@@ -24366,8 +24419,11 @@
           cx = pointsArr[activeSeries][j][0];
           cy = pointsArr[activeSeries][j][1];
         }
+        if (isNaN(cx)) {
+          return;
+        }
         var points = ttCtx.tooltipUtil.getAllMarkers();
-        if (points !== null) {
+        if (points.length) {
           for (var p = 0; p < w.globals.series.length; p++) {
             var pointArr = pointsArr[p];
             if (w.globals.comboCharts) {
@@ -24430,7 +24486,7 @@
           }
           if (jBar &&
           // fixes apexcharts.js#2354
-          isBoxOrCandle && w.globals.comboCharts) {
+          isBoxOrCandle) {
             bcx = bcx - bw / 2;
           }
         } else {
@@ -25715,6 +25771,13 @@
         if (shared === null) shared = this.tConfig.shared;
         var hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries);
         var bars = this.tooltipUtil.getElBars();
+        var handlePoints = function handlePoints() {
+          if (w.globals.markers.largestSize > 0) {
+            ttCtx.marker.enlargePoints(j);
+          } else {
+            ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
+          }
+        };
         if (w.config.legend.tooltipHoverFormatter) {
           var legendFormatter = w.config.legend.tooltipHoverFormatter;
           var els = Array.from(this.legendLabels);
@@ -25759,11 +25822,7 @@
             shared: this.showOnIntersect ? false : this.tConfig.shared
           }));
           if (hasMarkers) {
-            if (w.globals.markers.largestSize > 0) {
-              ttCtx.marker.enlargePoints(j);
-            } else {
-              ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
-            }
+            handlePoints();
           } else if (this.tooltipUtil.hasBars()) {
             this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars);
             if (this.barSeriesHeight > 0) {
@@ -25773,7 +25832,11 @@
 
               // de-activate first
               this.deactivateHoverFilter();
-              this.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
+              ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
+              var points = ttCtx.tooltipUtil.getAllMarkers(true);
+              if (points.length) {
+                handlePoints();
+              }
               for (var b = 0; b < paths.length; b++) {
                 graphics.pathMouseEnter(paths[b]);
               }
@@ -26411,7 +26474,7 @@
             barWidth = parseInt(this.barCtx.barOptions.columnWidth, 10);
           }
           zeroH = w.globals.gridHeight - this.barCtx.baseLineY[this.barCtx.translationsIndex] - (this.barCtx.isReversed ? w.globals.gridHeight : 0) + (this.barCtx.isReversed ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2 : 0);
-          x = w.globals.padHorizontal + (xDivision - barWidth * this.barCtx.seriesLen) / 2;
+          x = w.globals.padHorizontal + Utils$1.noExponents(xDivision - barWidth * this.barCtx.seriesLen) / 2;
         }
         w.globals.barHeight = barHeight;
         w.globals.barWidth = barWidth;
@@ -26462,11 +26525,13 @@
         var fill = this.barCtx.ctx.fill;
         var fillColor = null;
         var seriesNumber = this.barCtx.barOptions.distributed ? j : i;
+        var useRangeColor = false;
         if (this.barCtx.barOptions.colors.ranges.length > 0) {
           var colorRange = this.barCtx.barOptions.colors.ranges;
           colorRange.map(function (range) {
             if (series[i][j] >= range.from && series[i][j] <= range.to) {
               fillColor = range.color;
+              useRangeColor = true;
             }
           });
         }
@@ -26478,7 +26543,10 @@
           fillConfig: (_w$config$series$i$da = w.config.series[i].data[j]) === null || _w$config$series$i$da === void 0 ? void 0 : _w$config$series$i$da.fill,
           fillType: (_w$config$series$i$da2 = w.config.series[i].data[j]) !== null && _w$config$series$i$da2 !== void 0 && (_w$config$series$i$da3 = _w$config$series$i$da2.fill) !== null && _w$config$series$i$da3 !== void 0 && _w$config$series$i$da3.type ? (_w$config$series$i$da4 = w.config.series[i].data[j]) === null || _w$config$series$i$da4 === void 0 ? void 0 : _w$config$series$i$da4.fill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
         });
-        return pathFill;
+        return {
+          color: pathFill,
+          useRangeColor: useRangeColor
+        };
       }
     }, {
       key: "getStrokeWidth",
@@ -27138,8 +27206,9 @@
             }
             var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
             if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
+              var _pathFill$color;
               var barShadow = this.barHelpers.drawBarShadow({
-                color: typeof pathFill === 'string' && (pathFill === null || pathFill === void 0 ? void 0 : pathFill.indexOf('url')) === -1 ? pathFill : Utils$1.hexToRgba(w.globals.colors[i]),
+                color: typeof pathFill.color === 'string' && ((_pathFill$color = pathFill.color) === null || _pathFill$color === void 0 ? void 0 : _pathFill$color.indexOf('url')) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i]),
                 prevPaths: this.pathArr[this.pathArr.length - 1],
                 currPaths: paths
               });
@@ -27169,9 +27238,12 @@
               xArrj.push(x + barWidth / 2);
             }
             yArrj.push(y);
-            this.renderSeries({
+            this.renderSeries(_objectSpread2(_objectSpread2({
               realIndex: realIndex,
-              pathFill: pathFill,
+              pathFill: pathFill.color
+            }, pathFill.useRangeColor ? {
+              lineFill: pathFill.color
+            } : {}), {}, {
               j: j,
               i: i,
               columnGroupIndex: columnGroupIndex,
@@ -27189,7 +27261,7 @@
               elBarShadows: elBarShadows,
               visibleSeries: this.visibleI,
               type: 'bar'
-            });
+            }));
           }
 
           // push all x val arrays into main xArr
@@ -27681,9 +27753,12 @@
             if (_this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' && w.globals.series[realIndex][j] > 0 || _this.barHelpers.arrBorderRadius[realIndex][j] === 'top' && w.globals.series[realIndex][j] < 0) {
               classes = flipClass;
             }
-            elSeries = _this.renderSeries({
+            elSeries = _this.renderSeries(_objectSpread2(_objectSpread2({
               realIndex: realIndex,
-              pathFill: pathFill,
+              pathFill: pathFill.color
+            }, pathFill.useRangeColor ? {
+              lineFill: pathFill.color
+            } : {}), {}, {
               j: j,
               i: i,
               columnGroupIndex: columnGroupIndex,
@@ -27701,7 +27776,7 @@
               type: 'bar',
               visibleSeries: columnGroupIndex,
               classes: classes
-            });
+            }));
           }
 
           // push all x val arrays into main xArr
@@ -28182,20 +28257,21 @@
         var graphics = new Graphics(this.ctx);
         var i = indexes.i;
         var j = indexes.j;
-        var isPositive = true;
-        var colorPos = w.config.plotOptions.candlestick.colors.upward;
-        var colorNeg = w.config.plotOptions.candlestick.colors.downward;
-        var color = '';
-        if (this.isBoxPlot) {
-          color = [this.boxOptions.colors.lower, this.boxOptions.colors.upper];
-        }
-        var yRatio = this.yRatio[indexes.translationsIndex];
+        var candleColors = w.config.plotOptions.candlestick.colors;
+        var boxColors = this.boxOptions.colors;
         var realIndex = indexes.realIndex;
+        var getColor = function getColor(color) {
+          return Array.isArray(color) ? color[realIndex] : color;
+        };
+        var colorPos = getColor(candleColors.upward);
+        var colorNeg = getColor(candleColors.downward);
+        var yRatio = this.yRatio[indexes.translationsIndex];
         var ohlc = this.getOHLCValue(realIndex, j);
         var l1 = zeroH;
         var l2 = zeroH;
-        if (ohlc.o > ohlc.c) {
-          isPositive = false;
+        var color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg];
+        if (this.isBoxPlot) {
+          color = [getColor(boxColors.lower), getColor(boxColors.upper)];
         }
         var y1 = Math.min(ohlc.o, ohlc.c);
         var y2 = Math.max(ohlc.o, ohlc.c);
@@ -28236,7 +28312,7 @@
           y: y2,
           goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j, indexes.translationsIndex),
           barXPosition: barXPosition,
-          color: this.isBoxPlot ? color : isPositive ? [colorPos] : [colorNeg]
+          color: color
         };
       }
     }, {
@@ -28303,12 +28379,18 @@
       key: "getOHLCValue",
       value: function getOHLCValue(i, j) {
         var w = this.w;
+        var coreUtils = new CoreUtils(this.ctx, w);
+        var h = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleH[i][j], i);
+        var o = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleO[i][j], i);
+        var m = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleM[i][j], i);
+        var c = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleC[i][j], i);
+        var l = coreUtils.getLogValAtSeriesIndex(w.globals.seriesCandleL[i][j], i);
         return {
-          o: this.isBoxPlot ? w.globals.seriesCandleH[i][j] : w.globals.seriesCandleO[i][j],
-          h: this.isBoxPlot ? w.globals.seriesCandleO[i][j] : w.globals.seriesCandleH[i][j],
-          m: w.globals.seriesCandleM[i][j],
-          l: this.isBoxPlot ? w.globals.seriesCandleC[i][j] : w.globals.seriesCandleL[i][j],
-          c: this.isBoxPlot ? w.globals.seriesCandleL[i][j] : w.globals.seriesCandleC[i][j]
+          o: this.isBoxPlot ? h : o,
+          h: this.isBoxPlot ? o : h,
+          m: m,
+          l: this.isBoxPlot ? c : l,
+          c: this.isBoxPlot ? l : c
         };
       }
     }]);
@@ -28527,7 +28609,19 @@
           }
           var x1 = 0;
           var shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
-          for (var j = 0; j < heatSeries[i].length; j++) {
+          var j = 0;
+          for (var dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
+            // Recognize gaps and align values based on x axis
+
+            if (w.globals.seriesX.length && !w.globals.allSeriesHasEqualX) {
+              if (w.globals.minX + w.globals.minXDiff * dIndex < w.globals.seriesX[i][j]) {
+                x1 = x1 + xDivision;
+                continue;
+              }
+            }
+
+            // Stop loop if index is out of array length
+            if (j >= heatSeries[i].length) break;
             var heatColor = this.helpers.getShadeColor(w.config.chart.type, i, j, this.negRange);
             var color = heatColor.color;
             var heatColorProps = heatColor.colorProps;
@@ -28597,6 +28691,7 @@
               elSeries.add(dataLabels);
             }
             x1 = x1 + xDivision;
+            j++;
           }
           y1 = y1 + yDivision;
           ret.add(elSeries);
@@ -30360,11 +30455,10 @@
             y = paths.y;
             x = paths.x;
             var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
-            var lineFill = w.globals.stroke.colors[realIndex];
             this.renderSeries({
               realIndex: realIndex,
-              pathFill: pathFill,
-              lineFill: lineFill,
+              pathFill: pathFill.color,
+              lineFill: pathFill.useRangeColor ? pathFill.color : w.globals.stroke.colors[realIndex],
               j: j,
               i: i,
               x: x,
@@ -31339,6 +31433,7 @@
         var pathState = 0;
         var segmentStartX;
         for (var j = 0; j < iterations; j++) {
+          if (series[i].length === 0) break;
           var isNull = typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null;
           if (w.globals.isXNumeric) {
             var sX = w.globals.seriesX[realIndex][j + 1];
@@ -31383,7 +31478,7 @@
           }
 
           // push current X
-          xArrj.push(x);
+          xArrj.push(series[i][j + 1] === null ? null : x);
 
           // push current Y that will be used as next series's bottom position
           if (isNull && (w.config.stroke.curve === 'smooth' || w.config.stroke.curve === 'monotoneCubic')) {
@@ -32781,6 +32876,9 @@
           val = firstTickValue;
           // in case it's the last date of month, we need to check it
           month = changeMonth(date, currentMonth, currentYear);
+          if (val !== 1) {
+            unit = 'day';
+          }
         }
 
         // push the first tick in the array
@@ -32860,12 +32958,18 @@
           hour = 0;
           date += 1;
           unit = 'day';
-          // Unit changed to day , Value should align unit 
+          // Unit changed to day , Value should align unit
           firstTickValue = date;
         }
         var checkNextMonth = changeDate(date, currentMonth);
         var month = checkNextMonth.month;
         month = changeMonth(date, month);
+
+        // Check if date is greater than 31 and change month if it is
+        if (firstTickValue > 31) {
+          date = 1;
+          firstTickValue = date;
+        }
 
         // push the first tick in the array
         this.timeScaleArray.push({
@@ -33538,12 +33642,13 @@
       key: "setupBrushHandler",
       value: function setupBrushHandler() {
         var _this2 = this;
-        var w = this.w;
+        var ctx = this.ctx,
+          w = this.w;
         if (!w.config.chart.brush.enabled) return;
         if (typeof w.config.chart.events.selection !== 'function') {
           var targets = Array.isArray(w.config.chart.brush.targets) ? w.config.chart.brush.targets : [w.config.chart.brush.target];
           targets.forEach(function (target) {
-            var targetChart = ApexCharts.getChartByID(target);
+            var targetChart = ctx.constructor.getChartByID(target);
             targetChart.w.globals.brushSource = _this2.ctx;
             if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
               targetChart.w.config.chart.events.zoomed = function () {
@@ -33558,7 +33663,7 @@
           });
           w.config.chart.events.selection = function (chart, e) {
             targets.forEach(function (target) {
-              var targetChart = ApexCharts.getChartByID(target);
+              var targetChart = ctx.constructor.getChartByID(target);
               targetChart.ctx.updateHelpers._updateOptions({
                 xaxis: {
                   min: e.xaxis.min,
@@ -34359,7 +34464,7 @@
     }
   }
 
-  extend(Element, {
+  extend(Element$1, {
     draggable(enable = true) {
       const dragHandler = this.remember('_draggable') || new DragHandler(this);
       dragHandler.init(enable);
@@ -34593,7 +34698,7 @@
       return this;
     };
   };
-  extend(Element, {
+  extend(Element$1, {
     select: getSelectFn$1(SelectHandler$1)
   });
   extend([Polygon, Polyline, Line$1], {
@@ -34836,7 +34941,7 @@
       return this;
     };
   };
-  extend(Element, {
+  extend(Element$1, {
     select: getSelectFn(SelectHandler)
   });
   extend([Polygon, Polyline, Line$1], {
@@ -35072,7 +35177,7 @@
       return angle;
     }
   }
-  extend(Element, {
+  extend(Element$1, {
     // Resize element with mouse
     resize: function(enabled = true, options = {}) {
       if (typeof enabled === "object") {
@@ -35291,7 +35396,7 @@
    *
    * @module ApexCharts
    **/
-  var ApexCharts$1 = /*#__PURE__*/function () {
+  var ApexCharts = /*#__PURE__*/function () {
     function ApexCharts(el, opts) {
       _classCallCheck(this, ApexCharts);
       this.opts = opts;
@@ -36048,6 +36153,6 @@
     return ApexCharts;
   }();
 
-  return ApexCharts$1;
+  return ApexCharts;
 
 }));
